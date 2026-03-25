@@ -47,3 +47,7 @@ Since the extension is not yet published on the Chrome Web Store, you must insta
 
 - Google Chrome Extensions API (Manifest V3)
 - HTML5, Vanilla JavaScript, CSS3 (Variables, Flexbox Layout, and "Glassmorphism" design).
+
+## Credits
+
+Created by [antoniomg](http://antonio.mg) with the assistance of Gemini.
