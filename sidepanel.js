@@ -196,10 +196,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateTabUrl(newCircuit);
             };
 
+            const renameBtn = document.createElement('button');
+            renameBtn.className = 'copy-btn rename-btn';
+            renameBtn.innerText = 'Rename';
+            renameBtn.title = 'Rename this gate';
+            renameBtn.onclick = () => {
+                const newName = prompt("Enter new name for this gate:", gate.name || "");
+                if (newName !== null && newName.trim() !== "") {
+                    const newCircuit = JSON.parse(JSON.stringify(currentCircuit));
+                    newCircuit.gates[index].name = newName.trim();
+                    updateTabUrl(newCircuit);
+                }
+            };
+
             actionsObj.appendChild(copyBtn);
             if (gate.circuit) {
                 actionsObj.appendChild(copyCircBtn);
             }
+            actionsObj.appendChild(renameBtn);
             actionsObj.appendChild(delBtn);
 
             item.appendChild(name);
@@ -240,6 +254,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentCircuit) {
             navigator.clipboard.writeText(JSON.stringify(currentCircuit, null, 2));
             flashButton('copy-circuit-btn', 'Circuit Copied!');
+        }
+    });
+
+    // Copy Circuit as Gate Logic
+    document.getElementById('copy-circuit-as-gate-btn').addEventListener('click', () => {
+        if (currentCircuit && currentCircuit.cols && currentCircuit.cols.length > 0) {
+            const newGate = {
+                id: "~" + Math.random().toString(36).substring(2, 6),
+                name: "New Gate",
+                circuit: {
+                    cols: currentCircuit.cols
+                }
+            };
+            navigator.clipboard.writeText(JSON.stringify(newGate, null, 2));
+            flashButton('copy-circuit-as-gate-btn', 'Copied as Gate!');
+        } else {
+            alert("The current circuit is empty or not attached.");
         }
     });
 

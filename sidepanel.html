@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quirk Companion</title>
     <link rel="stylesheet" href="sidepanel.css">
 </head>
+
 <body>
     <div id="app">
         <header>
@@ -23,7 +25,7 @@
                 <div id="gates-list" class="list-container">
                     <!-- Gates will be populated here -->
                 </div>
-                
+
                 <div class="action-group">
                     <button id="add-gate-btn" class="primary-btn">Add Gate via JSON</button>
                     <div id="add-gate-form" class="hidden form-popup">
@@ -40,6 +42,10 @@
                 <h2>Circuit Operations</h2>
                 <div class="action-group">
                     <button id="copy-circuit-btn" class="primary-btn">Copy Complete Circuit</button>
+                </div>
+                <div class="action-group">
+                    <button id="copy-circuit-as-gate-btn" class="secondary-btn" style="width: 100%; padding: 10px;">Copy
+                        Circuit as Gate</button>
                 </div>
 
                 <div class="action-group offset-group">
@@ -62,4 +68,5 @@
     </div>
     <script src="sidepanel.js"></script>
 </body>
+
 </html>
