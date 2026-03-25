@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quirk Companion</title>
+    <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Quirk Companion</h1>
+            <p>Quantum Circuit Assistant</p>
+        </header>
+
+        <main>
+            <div id="status-panel" class="card">
+                <p id="connection-status">Looking for Quirk...</p>
+            </div>
+
+            <section id="gates-section" class="card">
+                <h2>Custom Gates</h2>
+                <div id="gates-list" class="list-container">
+                    <!-- Gates will be populated here -->
+                </div>
+                
+                <div class="action-group">
+                    <button id="add-gate-btn" class="primary-btn">Add Gate via JSON</button>
+                    <div id="add-gate-form" class="hidden form-popup">
+                        <textarea id="gate-json-input" placeholder='Paste gate JSON here...' rows="4"></textarea>
+                        <div class="row">
+                            <button id="submit-gate-btn" class="success-btn">Add to Circuit</button>
+                            <button id="cancel-gate-btn" class="secondary-btn">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="circuit-section" class="card">
+                <h2>Circuit Operations</h2>
+                <div class="action-group">
+                    <button id="copy-circuit-btn" class="primary-btn">Copy Complete Circuit</button>
+                </div>
+
+                <div class="action-group offset-group">
+                    <button id="paste-circuit-btn" class="primary-btn">Append Circuit via JSON</button>
+                    <div id="paste-circuit-form" class="hidden form-popup">
+                        <textarea id="circuit-json-input" placeholder='Paste circuit JSON here...' rows="4"></textarea>
+                        <div class="input-group">
+                            <label for="qubit-offset">Qubit Offset:</label>
+                            <input type="number" id="qubit-offset" value="0" min="0" max="15">
+                        </div>
+                        <p class="hint">The circuit will be shifted down by this many wires.</p>
+                        <div class="row">
+                            <button id="submit-circuit-btn" class="success-btn">Append</button>
+                            <button id="cancel-circuit-btn" class="secondary-btn">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="sidepanel.js"></script>
+</body>
+</html>

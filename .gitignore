@@ -1,0 +1,30 @@
+# Entornos de desarrollo
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Sistema Operativo
+.DS_Store
+Thumbs.db
+
+# Dependencias (si usas npm en el futuro)
+node_modules/
+package-lock.json
+npm-debug.log
+
+# Archivos y carpetas locales
+quirk-source/
+
+# Logs
+logs/
+*.log
+
+# Archivos empaquetados de la extensión
+*.crx
+*.zip
+*.pem
+
+# Archivos de build/dist
+dist/
+build/

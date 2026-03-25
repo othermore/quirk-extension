@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Quirk Circuit Companion",
+  "version": "1.0",
+  "description": "Manage and analyze Quirk quantum circuits and custom gates from the side panel.",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Open Quirk Companion"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

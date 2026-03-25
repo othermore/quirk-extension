@@ -1,0 +1,287 @@
+document.addEventListener('DOMContentLoaded', () => {
+    let currentTabId = null;
+    let currentUrl = "";
+    let currentCircuit = null;
+
+    // Elements
+    const statusPanel = document.getElementById('status-panel');
+    const statusText = document.getElementById('connection-status');
+    const gatesList = document.getElementById('gates-list');
+
+    // Button logic and form toggles
+    function setupToggle(btnId, formId, cancelBtnId) {
+        const btn = document.getElementById(btnId);
+        const form = document.getElementById(formId);
+        const cancel = document.getElementById(cancelBtnId);
+
+        btn.addEventListener('click', () => {
+            form.classList.toggle('hidden');
+        });
+
+        cancel.addEventListener('click', () => {
+            form.classList.add('hidden');
+        });
+    }
+
+    setupToggle('add-gate-btn', 'add-gate-form', 'cancel-gate-btn');
+    setupToggle('paste-circuit-btn', 'paste-circuit-form', 'cancel-circuit-btn');
+
+    // UI Feedback
+    function flashButton(btnId, text) {
+        const btn = document.getElementById(btnId);
+        const originalText = btn.innerText;
+        btn.innerText = text;
+        btn.style.backgroundColor = 'var(--success)';
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.style.backgroundColor = '';
+        }, 1500);
+    }
+
+    // Tab tracking
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+        if (tab.active && changeInfo.url) {
+            checkTab(tab);
+        }
+    });
+
+    chrome.tabs.onActivated.addListener((activeInfo) => {
+        chrome.tabs.get(activeInfo.tabId, (tab) => {
+            if (tab) checkTab(tab);
+        });
+    });
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs.length > 0) {
+            checkTab(tabs[0]);
+        }
+    });
+
+    function checkTab(tab) {
+        if (!tab.url) return;
+        currentTabId = tab.id;
+        currentUrl = tab.url;
+
+        if (currentUrl.toLowerCase().includes("quirk") || currentUrl.includes("circuit=")) {
+            // Attempt to fetch circuit directly from the web page context
+            chrome.scripting.executeScript({
+                target: { tabId: currentTabId },
+                func: () => {
+                    // 1. Try URL Hash first
+                    const hashMatch = document.location.hash.match(/circuit=([^&]*)/);
+                    if (hashMatch && hashMatch[1]) {
+                        return decodeURIComponent(hashMatch[1]);
+                    }
+                    // 2. Try Quirk's DEFAULT_CIRCUIT (for exported HTML files)
+                    if (typeof document.DEFAULT_CIRCUIT === 'string') {
+                        return document.DEFAULT_CIRCUIT;
+                    }
+                    return null;
+                }
+            }, (results) => {
+                let jsonStr = null;
+                if (!chrome.runtime.lastError && results && results[0] && results[0].result) {
+                    jsonStr = results[0].result;
+                } else {
+                    // Fallback to basic URL parsing just in case script fails (e.g., no permissions)
+                    const hashIndex = currentUrl.indexOf('#circuit=');
+                    if (hashIndex !== -1) {
+                        jsonStr = decodeURIComponent(currentUrl.substring(hashIndex + 9));
+                    }
+                }
+
+                if (jsonStr) {
+                    parseJsonStr(jsonStr);
+                } else {
+                    showDisconnected("No circuit found in URL or Page.");
+                }
+            });
+        } else {
+            showDisconnected("Not on a Quirk page.");
+        }
+    }
+
+    function showConnected() {
+        statusText.innerText = "Connected to Quirk Circuit";
+        statusText.className = "connected";
+    }
+
+    function showDisconnected(msg = "Looking for Quirk...") {
+        statusText.innerText = msg;
+        statusText.className = "disconnected";
+        gatesList.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No gates available.</p>';
+        currentCircuit = null;
+    }
+
+    function parseJsonStr(jsonStr) {
+        try {
+            currentCircuit = JSON.parse(jsonStr);
+
+            if (!currentCircuit.gates) currentCircuit.gates = [];
+            if (!currentCircuit.cols) currentCircuit.cols = [];
+
+            showConnected();
+            renderGates();
+        } catch (e) {
+            console.error("Error parsing circuit:", e);
+            showDisconnected("Error parsing circuit data.");
+        }
+    }
+
+    function updateTabUrl(newCircuit) {
+        if (!currentTabId || !currentUrl) return;
+        const hashIndex = currentUrl.indexOf('#');
+        const baseUrl = hashIndex !== -1 ? currentUrl.substring(0, hashIndex) : currentUrl;
+
+        // Update local state and UI immediately for snappy feeling
+        currentCircuit = newCircuit;
+        renderGates();
+
+        const newHash = '#circuit=' + JSON.stringify(newCircuit);
+        const newUrl = baseUrl + newHash;
+
+        chrome.tabs.update(currentTabId, { url: newUrl });
+    }
+
+    function renderGates() {
+        gatesList.innerHTML = '';
+        if (!currentCircuit || !currentCircuit.gates || currentCircuit.gates.length === 0) {
+            gatesList.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No custom gates in this circuit.</p>';
+            return;
+        }
+
+        currentCircuit.gates.forEach((gate, index) => {
+            const item = document.createElement('div');
+            item.className = 'gate-item';
+
+            const name = document.createElement('span');
+            name.className = 'gate-name';
+            name.innerText = gate.name || gate.id || `Gate ${index + 1}`;
+
+            const actionsObj = document.createElement('div');
+            actionsObj.className = 'gate-actions';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.innerText = 'Copy';
+            copyBtn.title = 'Copy as Gate';
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(JSON.stringify(gate, null, 2));
+                const original = copyBtn.innerText;
+                copyBtn.innerText = 'Copied!';
+                setTimeout(() => copyBtn.innerText = original, 1500);
+            };
+
+            const copyCircBtn = document.createElement('button');
+            copyCircBtn.className = 'copy-btn copy-circ-btn';
+            copyCircBtn.innerText = 'Copy Circ';
+            copyCircBtn.title = 'Copy as Circuit';
+            copyCircBtn.onclick = () => {
+                if (gate.circuit) {
+                    navigator.clipboard.writeText(JSON.stringify(gate.circuit, null, 2));
+                    const original = copyCircBtn.innerText;
+                    copyCircBtn.innerText = 'Copied!';
+                    setTimeout(() => copyCircBtn.innerText = original, 1500);
+                } else {
+                    alert("This gate has no internal circuit.");
+                }
+            };
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'copy-btn delete-btn';
+            delBtn.innerText = 'Delete';
+            delBtn.onclick = () => {
+                const newCircuit = JSON.parse(JSON.stringify(currentCircuit));
+                newCircuit.gates.splice(index, 1);
+                updateTabUrl(newCircuit);
+            };
+
+            actionsObj.appendChild(copyBtn);
+            if (gate.circuit) {
+                actionsObj.appendChild(copyCircBtn);
+            }
+            actionsObj.appendChild(delBtn);
+
+            item.appendChild(name);
+            item.appendChild(actionsObj);
+            gatesList.appendChild(item);
+        });
+    }
+
+    // Add Gate Logic
+    document.getElementById('submit-gate-btn').addEventListener('click', () => {
+        if (!currentCircuit) return alert("No active Quirk circuit linked.");
+        try {
+            const jsonStr = document.getElementById('gate-json-input').value;
+            const newGate = JSON.parse(jsonStr);
+
+            if (!newGate.id) throw new Error("Gate missing 'id' property");
+
+            const newCircuit = JSON.parse(JSON.stringify(currentCircuit));
+
+            // Overwrite if ID exists, or append
+            const existingIndex = newCircuit.gates.findIndex(g => g.id === newGate.id);
+            if (existingIndex !== -1) {
+                newCircuit.gates[existingIndex] = newGate;
+            } else {
+                newCircuit.gates.push(newGate);
+            }
+
+            updateTabUrl(newCircuit);
+            document.getElementById('gate-json-input').value = '';
+            document.getElementById('add-gate-form').classList.add('hidden');
+        } catch (e) {
+            alert("Invalid Gate JSON: " + e.message);
+        }
+    });
+
+    // Copy Circuit Logic
+    document.getElementById('copy-circuit-btn').addEventListener('click', () => {
+        if (currentCircuit) {
+            navigator.clipboard.writeText(JSON.stringify(currentCircuit, null, 2));
+            flashButton('copy-circuit-btn', 'Circuit Copied!');
+        }
+    });
+
+    // Paste Circuit Logic
+    document.getElementById('submit-circuit-btn').addEventListener('click', () => {
+        if (!currentCircuit) return alert("No active Quirk circuit linked.");
+        try {
+            const jsonStr = document.getElementById('circuit-json-input').value;
+            const pastedCircuit = JSON.parse(jsonStr);
+            const offset = parseInt(document.getElementById('qubit-offset').value, 10) || 0;
+
+            const newCircuit = JSON.parse(JSON.stringify(currentCircuit));
+
+            // Process cols
+            if (pastedCircuit.cols) {
+                const paddedCols = pastedCircuit.cols.map(col => {
+                    if (offset > 0) {
+                        const prefix = Array(offset).fill(1);
+                        return prefix.concat(col);
+                    }
+                    return col;
+                });
+                newCircuit.cols = newCircuit.cols.concat(paddedCols);
+            }
+
+            // Process gates
+            if (pastedCircuit.gates) {
+                const existingIds = new Set(newCircuit.gates.map(g => g.id));
+                for (let g of pastedCircuit.gates) {
+                    if (!existingIds.has(g.id)) {
+                        newCircuit.gates.push(g);
+                        existingIds.add(g.id);
+                    }
+                }
+            }
+
+            updateTabUrl(newCircuit);
+            document.getElementById('circuit-json-input').value = '';
+            document.getElementById('paste-circuit-form').classList.add('hidden');
+
+        } catch (e) {
+            alert("Invalid Circuit JSON: " + e.message);
+        }
+    });
+});
