@@ -209,10 +209,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
+            const editBtn = document.createElement('button');
+            editBtn.className = 'copy-btn';
+            editBtn.innerText = 'Edit';
+            editBtn.title = 'Edit JSON / Paste to Update';
+            editBtn.onclick = () => {
+                window.editGateIndex = index;
+                document.getElementById('edit-gate-name').innerText = gate.name || gate.id;
+                document.getElementById('edit-gate-json').value = JSON.stringify(gate, null, 2);
+                document.getElementById('edit-gate-modal').classList.remove('hidden');
+            };
+
             actionsObj.appendChild(copyBtn);
             if (gate.circuit) {
                 actionsObj.appendChild(copyCircBtn);
             }
+            actionsObj.appendChild(editBtn);
             actionsObj.appendChild(renameBtn);
             actionsObj.appendChild(delBtn);
 
@@ -284,8 +296,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const newCircuit = JSON.parse(JSON.stringify(currentCircuit));
 
-            // Process cols
+            // Optional structural reversals on pasted circuit
+            const revTime = document.getElementById('rev-time-cb').checked;
+            const revEndian = document.getElementById('rev-endian-cb').checked;
+
             if (pastedCircuit.cols) {
+                if (revEndian) {
+                    let maxWires = 0;
+                    pastedCircuit.cols.forEach(col => {
+                        if (col.length > maxWires) maxWires = col.length;
+                    });
+                    pastedCircuit.cols = pastedCircuit.cols.map(col => {
+                        const padded = [...col];
+                        while (padded.length < maxWires) padded.push(1);
+                        return padded.reverse();
+                    });
+                }
+
+                if (revTime) {
+                    pastedCircuit.cols.reverse();
+                }
+
+                // Append and apply offset
                 const paddedCols = pastedCircuit.cols.map(col => {
                     if (offset > 0) {
                         const prefix = Array(offset).fill(1);
@@ -315,4 +347,34 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Invalid Circuit JSON: " + e.message);
         }
     });
+
+    // Edit Gate Modal Logic
+    document.getElementById('cancel-edit-gate-btn').addEventListener('click', () => {
+        document.getElementById('edit-gate-modal').classList.add('hidden');
+    });
+
+    document.getElementById('save-edit-gate-btn').addEventListener('click', () => {
+        if (window.editGateIndex === undefined || window.editGateIndex === -1 || !currentCircuit) return;
+        try {
+            const pastedGate = JSON.parse(document.getElementById('edit-gate-json').value);
+            const newCircuit = JSON.parse(JSON.stringify(currentCircuit));
+
+            // Preserve ID to prevent breaking the circuit
+            const originalGate = newCircuit.gates[window.editGateIndex];
+            pastedGate.id = originalGate.id;
+
+            // If it doesn't have a name, keep the original name
+            if (!pastedGate.name) {
+                pastedGate.name = originalGate.name;
+            }
+
+            newCircuit.gates[window.editGateIndex] = pastedGate;
+
+            updateTabUrl(newCircuit);
+            document.getElementById('edit-gate-modal').classList.add('hidden');
+        } catch (e) {
+            alert("Invalid Gate JSON: " + e.message);
+        }
+    });
+
 });

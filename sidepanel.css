@@ -239,6 +239,23 @@ textarea:focus {
     border-radius: 8px;
 }
 
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
 input[type="number"] {
     background: rgba(0, 0, 0, 0.4);
     border: 1px solid var(--border);
@@ -247,6 +264,17 @@ input[type="number"] {
     border-radius: 4px;
     width: 60px;
     text-align: right;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    z-index: 100;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--primary);
 }
 
 .hint {

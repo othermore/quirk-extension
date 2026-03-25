@@ -56,6 +56,10 @@
                             <label for="qubit-offset">Qubit Offset:</label>
                             <input type="number" id="qubit-offset" value="0" min="0" max="15">
                         </div>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" id="rev-time-cb"> Reverse Time (Columns)</label>
+                            <label><input type="checkbox" id="rev-endian-cb"> Reverse Endian (Top-to-Down)</label>
+                        </div>
                         <p class="hint">The circuit will be shifted down by this many wires.</p>
                         <div class="row">
                             <button id="submit-circuit-btn" class="success-btn">Append</button>
@@ -64,6 +68,17 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Edit Gate Modal -->
+            <div id="edit-gate-modal" class="hidden form-popup card modal-overlay">
+                <h3>Edit Gate: <span id="edit-gate-name"></span></h3>
+                <p class="hint">Warning: ID will be preserved automatically to prevent your circuit from breaking.</p>
+                <textarea id="edit-gate-json" rows="6"></textarea>
+                <div class="row">
+                    <button id="save-edit-gate-btn" class="success-btn">Save & Update</button>
+                    <button id="cancel-edit-gate-btn" class="secondary-btn">Cancel</button>
+                </div>
+            </div>
         </main>
     </div>
     <script src="sidepanel.js"></script>
