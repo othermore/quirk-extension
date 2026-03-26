@@ -38,68 +38,91 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1500);
     }
 
-    // Tab tracking
-    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-        if (tab.active && changeInfo.url) {
-            checkTab(tab);
-        }
-    });
+    // Tab tracking strictly for the active tab in THIS sidepanel's window
+    function checkCurrentWindowTab() {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs.length > 0) {
+                checkTab(tabs[0]);
+            }
+        });
+    }
 
-    chrome.tabs.onActivated.addListener((activeInfo) => {
-        chrome.tabs.get(activeInfo.tabId, (tab) => {
-            if (tab) checkTab(tab);
+    // Initial check
+    checkCurrentWindowTab();
+
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+        if (!tab.active || !changeInfo.url) return;
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs.length > 0 && tabs[0].id === tabId) {
+                checkTab(tabs[0]);
+            }
         });
     });
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs.length > 0) {
-            checkTab(tabs[0]);
-        }
+    chrome.tabs.onActivated.addListener((activeInfo) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs.length > 0 && tabs[0].id === activeInfo.tabId) {
+                checkTab(tabs[0]);
+            }
+        });
     });
 
     function checkTab(tab) {
-        if (!tab.url) return;
+        if (!tab || !tab.url) return;
         currentTabId = tab.id;
         currentUrl = tab.url;
 
-        if (currentUrl.toLowerCase().includes("quirk") || currentUrl.includes("circuit=")) {
-            // Attempt to fetch circuit directly from the web page context
-            chrome.scripting.executeScript({
-                target: { tabId: currentTabId },
-                func: () => {
-                    // 1. Try URL Hash first
-                    const hashMatch = document.location.hash.match(/circuit=([^&]*)/);
-                    if (hashMatch && hashMatch[1]) {
-                        return decodeURIComponent(hashMatch[1]);
-                    }
-                    // 2. Try Quirk's DEFAULT_CIRCUIT (for exported HTML files)
-                    if (typeof document.DEFAULT_CIRCUIT === 'string') {
-                        return document.DEFAULT_CIRCUIT;
-                    }
-                    return null;
-                }
-            }, (results) => {
-                let jsonStr = null;
-                if (!chrome.runtime.lastError && results && results[0] && results[0].result) {
-                    jsonStr = results[0].result;
-                } else {
-                    // Fallback to basic URL parsing just in case script fails (e.g., no permissions)
-                    const hashIndex = currentUrl.indexOf('#circuit=');
-                    if (hashIndex !== -1) {
-                        jsonStr = decodeURIComponent(currentUrl.substring(hashIndex + 9));
-                    }
-                }
-
-                if (jsonStr) {
-                    parseJsonStr(jsonStr);
-                } else {
-                    showDisconnected("No circuit found in URL or Page.");
-                }
-            });
-        } else {
+        // Skip internal browser pages
+        if (currentUrl.startsWith("chrome://") || currentUrl.startsWith("chrome-extension://") || currentUrl.startsWith("edge://") || currentUrl.startsWith("about:")) {
             showDisconnected("Not on a Quirk page.");
+            return;
         }
+
+        // Attempt to fetch circuit directly from the web page context
+        chrome.scripting.executeScript({
+            target: { tabId: currentTabId },
+            func: () => {
+                // 1. Try URL Hash first
+                const hashMatch = document.location.hash.match(/circuit=([^&]*)/);
+                if (hashMatch && hashMatch[1]) {
+                    return decodeURIComponent(hashMatch[1]);
+                }
+                // 2. Try Quirk's DEFAULT_CIRCUIT (for exported HTML files)
+                if (typeof document.DEFAULT_CIRCUIT === 'string') {
+                    return document.DEFAULT_CIRCUIT;
+                }
+                return null;
+            }
+        }, (results) => {
+            let jsonStr = null;
+            if (!chrome.runtime.lastError && results && results[0] && results[0].result) {
+                jsonStr = results[0].result;
+            } else {
+                // Fallback to basic URL parsing just in case script fails (e.g., no permissions)
+                const hashIndex = currentUrl.indexOf('#circuit=');
+                if (hashIndex !== -1) {
+                    jsonStr = decodeURIComponent(currentUrl.substring(hashIndex + 9));
+                }
+            }
+
+            if (jsonStr) {
+                parseJsonStr(jsonStr);
+            } else {
+                showDisconnected("No circuit found in URL or Page.");
+            }
+        });
     }
+
+    // Refresh Button Logic
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs.length > 0) {
+                checkTab(tabs[0]);
+            } else {
+                showDisconnected("No active tab found.");
+            }
+        });
+    });
 
     function showConnected() {
         statusText.innerText = "Connected to Quirk Circuit";
