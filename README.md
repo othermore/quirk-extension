@@ -1,5 +1,7 @@
 # Quirk Circuit Companion
 
+[![Donate with GitHub Sponsors](https://img.shields.io/badge/Donate-GitHub%20Sponsors-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/othermore)
+
 A Google Chrome Extension to complement the [Quirk](https://algassert.com/quirk) quantum simulator, making it easier to manage custom components (gates) and copy/paste entire circuits.
 
 ## Features
